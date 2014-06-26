@@ -19,7 +19,7 @@ import urllib2
 from settings import settings
 from utils import url_fails
 
-SPLASH_DELAY = 20  # secs
+SPLASH_DELAY = 0  # secs
 EMPTY_PL_DELAY = 5  # secs
 
 WATCHDOG_PATH = '/tmp/screenly.watchdog'
@@ -28,7 +28,7 @@ LOAD_SCREEN = '/screenly/loading.jpg'  # relative to $HOME
 UZBLRC = '/etc/showtime/uzbl.rc'  # absolute path
 INTRO = '/screenly/intro-template.html'
 BASE_URL = 'http://vwhisky.internal.stuk.nu'
-BASE_PATH = 'file:///showtime/'
+BASE_PATH = 'file:///showtime'
 ASSET_PATH = '{0}/assets'.format(BASE_PATH)
 BLACK_PAGE = '{0}/static/black_page.html'.format(BASE_PATH)
 SPLASH_PAGE = '{0}/pages/splash'.format(BASE_URL)
@@ -193,13 +193,9 @@ def view_image(uri):
     browser_send('js window.setimg("{0}")'.format(uri), cb=lambda b: 'COMMAND_EXECUTED' in b and 'setimg' in b)
 
 
-def view_video(uri, duration, live=False):
+def view_video(uri, duration):
     logging.debug('Displaying video %s for %s ', uri, duration)
     
-    live = ''
-    if(live):
-        live = '--live'
-
     if arch == 'armv6l':
         player_args = ['omxplayer', uri, live]
         player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}
@@ -215,27 +211,34 @@ def view_video(uri, duration, live=False):
 
     browser_clear(force=True)
     while run.process.alive:
+        print run.process
         watchdog()
         sleep(1)
     if run.exit_code == 124:
         logging.error('omxplayer timed out')
 
 def view_livestream(uri, duration):
-    logging.debug('Displaying video %s for %s ', uri, duration)
+    print 'Displaying video {0} for {1} '.format(uri, duration)
+    print "LIVESTREAMING"
+    player_args = ['livestreamer', uri, 'best', '--fifo', '--player', '/usr/bin/omxplayer']
+    player_kwargs = {'_ok_code': [0, 1, 124]}
+        
+    #if duration and duration != 'N/A':
+    #    player_args = ['timeout', VIDEO_TIMEOUT + int(duration.split('.')[0])] + player_args
+
     
-    player_args = ['livestreamer', uri]
-
-    if duration and duration != 'N/A':
-        player_args = ['timeout', VIDEO_TIMEOUT + int(duration.split('.')[0])] + player_args
-
     run = sh.Command(player_args[0])(*player_args[1:], **player_kwargs)
-
+    
     browser_clear(force=True)
+    print "entering loop"
     while run.process.alive:
+        print run.process
         watchdog()
         sleep(1)
     if run.exit_code == 124:
-        logging.error('omxplayer timed out')
+        print 'omxplayer timed out'
+        
+    print "DONE LIVESTREAMING"
 
 def load_settings():
     """Load settings and set the log level."""
@@ -264,15 +267,20 @@ def asset_loop(scheduler):
         watchdog()
 
         if 'image' in mime:
+            print "VIEWING IMAGE"
             view_image("{0}/{1}".format(ASSET_PATH, uri))
         elif 'web' in mime:
+            print "VIEWING WEB"
             browser_url(uri)
         elif 'video' in mime:
+            print "VIEWING VIDEO"
             view_video("{0}/{1}".format(ASSET_PATH, uri), asset['duration'])
         elif 'rtmp' in mime:
-            view_rtmp(uri)
+            print "VIEWING RTMP"
+            view_video(uri, asset['duration'], True)
         elif 'livestream' in mime:
-            view_livestream(uri)
+            print "VIEWING LIVESTREAM"
+            view_livestream(uri, asset['duration'])
         else:
             logging.error('Unknown MimeType %s', mime)
 
@@ -313,13 +321,11 @@ def main():
     print "Splash delay: {0}".format(SPLASH_DELAY)
 
     load_browser(url=SPLASH_PAGE)
-    print "sleep"
+    print "sleeping: {0}".format(SPLASH_DELAY)
     sleep(SPLASH_DELAY)
     print "done sleeping"
+    
     print "Device ID: {0}".format(get_device_id())
-
-
-
 
     scheduler = Scheduler()
     logging.debug('Entering infinite loop.')
