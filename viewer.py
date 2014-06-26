@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-__author__ = "Kristian Nordman"
-__copyright__ = "Copyright 2014 scripter.se"
-__license__ = "Dual License: GPLv2 and Commercial License"
-
 from datetime import datetime, timedelta
 import time
 from os import path, getenv, utime
@@ -17,21 +13,22 @@ from signal import signal, SIGUSR1, SIGUSR2
 import logging
 import sh
 import json
+
 import urllib2
 
 from settings import settings
 from utils import url_fails
 
-SPLASH_DELAY = 5  # secs
+SPLASH_DELAY = 20  # secs
 EMPTY_PL_DELAY = 5  # secs
 
-#WATCHDOG_PATH = '/tmp/screenly.watchdog'
+WATCHDOG_PATH = '/tmp/screenly.watchdog'
 SCREENLY_HTML = '/tmp/screenly_html/'
 LOAD_SCREEN = '/screenly/loading.jpg'  # relative to $HOME
-UZBLRC = 'uzbl.rc'  # relative to $HOME
+UZBLRC = '/etc/showtime/uzbl.rc'  # absolute path
 INTRO = '/screenly/intro-template.html'
-BASE_URL = 'http://screenly.scripter.se'
-BASE_PATH = 'file:///media/xbmc/screenly'
+BASE_URL = 'http://vwhisky.internal.stuk.nu'
+BASE_PATH = 'file:///showtime/'
 ASSET_PATH = '{0}/assets'.format(BASE_PATH)
 BLACK_PAGE = '{0}/static/black_page.html'.format(BASE_PATH)
 SPLASH_PAGE = '{0}/pages/splash'.format(BASE_URL)
@@ -126,14 +123,14 @@ def get_device_id():
     
 def get_active_playlist():
     return json.loads(urllib2.urlopen("{0}/json/get_active_playlist/{1}".format(BASE_URL, get_device_id())).read())
-'''
+
 def watchdog():
     """Notify the watchdog file to be used with the watchdog-device."""
     if not path.isfile(WATCHDOG_PATH):
         open(WATCHDOG_PATH, 'w').close()
     else:
         utime(WATCHDOG_PATH, None)
-'''
+
 
 def load_browser(url=None):
     global browser, current_browser_url
@@ -152,8 +149,10 @@ def load_browser(url=None):
     logging.info('Browser loading %s. Running as PID %s.', current_browser_url, browser.pid)
 
     uzbl_rc = 'ssl_verify {}\n'.format('1' if settings['verify_ssl'] else '0')
-    with open(settings.get_configdir() + UZBLRC) as f:  # load uzbl.rc
+    with open(UZBLRC) as f:  # load uzbl.rc
         uzbl_rc = f.read() + uzbl_rc
+
+    print uzbl_rc
     browser_send(uzbl_rc)
 
 
@@ -194,12 +193,13 @@ def view_image(uri):
     browser_send('js window.setimg("{0}")'.format(uri), cb=lambda b: 'COMMAND_EXECUTED' in b and 'setimg' in b)
 
 
-def view_video(uri, duration, live = False):
+def view_video(uri, duration, live=False):
     logging.debug('Displaying video %s for %s ', uri, duration)
+    
     live = ''
     if(live):
         live = '--live'
-        
+
     if arch == 'armv6l':
         player_args = ['omxplayer', uri, live]
         player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}
@@ -222,9 +222,8 @@ def view_video(uri, duration, live = False):
 
 def view_livestream(uri, duration):
     logging.debug('Displaying video %s for %s ', uri, duration)
-    player_args = ['livestream', uri]
-    #player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}
-    #player_kwargs['_ok_code'] = [0, 124]
+    
+    player_args = ['livestreamer', uri]
 
     if duration and duration != 'N/A':
         player_args = ['timeout', VIDEO_TIMEOUT + int(duration.split('.')[0])] + player_args
@@ -237,8 +236,6 @@ def view_livestream(uri, duration):
         sleep(1)
     if run.exit_code == 124:
         logging.error('omxplayer timed out')
-
-
 
 def load_settings():
     """Load settings and set the log level."""
@@ -257,7 +254,7 @@ def asset_loop(scheduler):
     
     if asset is None:
         logging.info('Playlist is empty. Sleeping for %s seconds', EMPTY_PL_DELAY)
-        browser_url(SPLASH_PAGE)
+        view_url(SPLASH_PAGE)
         sleep(EMPTY_PL_DELAY)
 
     elif path.isfile(asset['uri']) or not url_fails(asset['uri']):

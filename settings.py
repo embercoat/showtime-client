@@ -7,13 +7,12 @@ import ConfigParser
 import logging
 from UserDict import IterableUserDict
 
-CONFIG_DIR = '/etc/screenly/'
-CONFIG_FILE = 'screenly.conf'
+CONFIG_DIR = '/etc/showtime/'
+CONFIG_FILE = 'showtime.conf'
 
 DEFAULTS = {
-    'main': {
-        'listen'   : '0.0.0.0:8080',
-        'assetdir' : 'screenly_assets',
+    'main' :{
+	'listen' : '0.0.0.0:80'
     },
     'viewer': {
         'show_splash': True,
@@ -31,7 +30,7 @@ DEFAULTS = {
 
 # Initiate logging
 logging.basicConfig(level=logging.INFO,
-                    filename='/tmp/screenly_viewer.log',
+                    filename='/tmp/showtime_viewer.log',
                     format='%(asctime)s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S')
 
@@ -44,7 +43,7 @@ logging.debug('Starting viewer.py')
 
 
 class ScreenlySettings(IterableUserDict):
-    "Screenly OSE's Settings."
+    "Showtimes Settings."
 
     def __init__(self, *args, **kwargs):
         rv = IterableUserDict.__init__(self, *args, **kwargs)
@@ -79,7 +78,7 @@ class ScreenlySettings(IterableUserDict):
             config.set(section, field, unicode(self.get(field, default)))
 
     def load(self):
-        "Loads the latest settings from screenly.conf into memory."
+        "Loads the latest settings from showtime.conf into memory."
         logging.debug('Reading config-file...')
         config = ConfigParser.ConfigParser()
         config.read(self.conf_file)
