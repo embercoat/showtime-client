@@ -13,7 +13,7 @@ from signal import signal, SIGUSR1, SIGUSR2
 import logging
 import sh
 import json
-
+import subprocess
 import urllib2
 
 from settings import settings
@@ -221,22 +221,28 @@ def view_livestream(uri, duration):
     print 'Displaying video {0} for {1} '.format(uri, duration)
     print "LIVESTREAMING"
     player_args = ['livestreamer', uri, 'best', '--fifo', '--player', '/usr/bin/omxplayer']
+    player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}
     player_kwargs = {'_ok_code': [0, 1, 124]}
         
     #if duration and duration != 'N/A':
     #    player_args = ['timeout', VIDEO_TIMEOUT + int(duration.split('.')[0])] + player_args
 
     
-    run = sh.Command(player_args[0])(*player_args[1:], **player_kwargs)
+    #run = sh.Command(player_args[0])(*player_args[1:], **player_kwargs)
+#    run = sh.livestreamer(uri, 'best', '--fifo', '--player', '/usr/bin/omxplayer', **player_kwargs)
+
+    cmd = subprocess.Popen(("livestreamer", "http://www.twitch.tv/callofduty", "best", "--fifo", "--player", "/usr/bin/omxplayer"))
+    sleep(float(duration))
+    cmd.terminate()
     
-    browser_clear(force=True)
-    print "entering loop"
-    while run.process.alive:
-        print run.process
-        watchdog()
-        sleep(1)
-    if run.exit_code == 124:
-        print 'omxplayer timed out'
+#    browser_clear(force=True)
+#    print "entering loop"
+#    while run.process.alive:
+#        print run.process
+#        watchdog()
+#        sleep(1)
+#    if run.exit_code == 124:
+#        print 'omxplayer timed out'
         
     print "DONE LIVESTREAMING"
 
