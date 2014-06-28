@@ -193,7 +193,7 @@ def view_image(uri):
     browser_send('js window.setimg("{0}")'.format(uri), cb=lambda b: 'COMMAND_EXECUTED' in b and 'setimg' in b)
 
 
-def view_video(uri, duration):
+def view_video(uri, duration, live = ''):
     logging.debug('Displaying video %s for %s ', uri, duration)
     
     if arch == 'armv6l':
@@ -231,7 +231,7 @@ def view_livestream(uri, duration):
     #run = sh.Command(player_args[0])(*player_args[1:], **player_kwargs)
 #    run = sh.livestreamer(uri, 'best', '--fifo', '--player', '/usr/bin/omxplayer', **player_kwargs)
 
-    cmd = subprocess.Popen(("livestreamer", "http://www.twitch.tv/callofduty", "best", "--fifo", "--player", "/usr/bin/omxplayer"))
+    cmd = subprocess.Popen(("livestreamer", uri, "best", "--fifo", "--player", "/usr/bin/omxplayer"))
     sleep(float(duration))
     cmd.terminate()
     
@@ -283,7 +283,7 @@ def asset_loop(scheduler):
             view_video("{0}/{1}".format(ASSET_PATH, uri), asset['duration'])
         elif 'rtmp' in mime:
             print "VIEWING RTMP"
-            view_video(uri, asset['duration'], True)
+            view_video(uri, asset['duration'], '--live')
         elif 'livestream' in mime:
             print "VIEWING LIVESTREAM"
             view_livestream(uri, asset['duration'])
