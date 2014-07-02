@@ -43,38 +43,38 @@ def sigusr1(signum, frame):
     The signal interrupts sleep() calls, so the currently playing web or image asset is skipped.
     omxplayer is killed to skip any currently playing video assets.
     """
-    logging.info('USR1 received, skipping.')
+    print('USR1 received, skipping.')
     sh.killall('omxplayer.bin', _ok_code=[1])
 
 
 def sigusr2(signum, frame):
     """Reload settings"""
-    logging.info("USR2 received, reloading settings.")
+    print("USR2 received, reloading settings.")
     load_settings()
 
 
 class Scheduler(object):
     def __init__(self, *args, **kwargs):
-        logging.debug('Scheduler init')
+        print('Scheduler init')
         self.update_playlist()
 
     def get_next_asset(self):
-        logging.debug('get_next_asset')
+        print('get_next_asset')
         self.refresh_playlist()
-        logging.debug('get_next_asset after refresh')
+        print('get_next_asset after refresh')
         if self.nassets == 0:
             return None
         idx = self.index
         self.index = (self.index + 1) % self.nassets
-        logging.debug('get_next_asset counter %s returning asset %s of %s', self.counter, idx + 1, self.nassets)
+        print('get_next_asset counter %s returning asset %s of %s', self.counter, idx + 1, self.nassets)
         if settings['shuffle_playlist'] and self.index == 0:
             self.counter += 1
         return self.assets[idx]
 
     def refresh_playlist(self):
-        logging.debug('refresh_playlist')
+        print('refresh_playlist')
         time_cur = int(time())
-        logging.debug('refresh: counter: (%s) deadline (%s) timecur (%s)', self.counter, self.deadline, time_cur)
+        print('refresh: counter: (%s) deadline (%s) timecur (%s)', self.counter, self.deadline, time_cur)
         print "current deadline: {0}".format(self.deadline)
         print "current time:     {0}".format(time_cur)
         print "db modtime:        {0}".format(self.get_db_mtime())
@@ -82,7 +82,7 @@ class Scheduler(object):
         
         
         if self.get_db_mtime() != self.last_update_db_mtime:
-            logging.debug('updating playlist due to database modification')
+            print('updating playlist due to database modification')
             print 'updating playlist due to database modification'
             self.update_playlist()
         elif self.deadline and self.deadline <= time_cur:
@@ -91,26 +91,26 @@ class Scheduler(object):
 
     def update_playlist(self):
 
-        logging.debug('update_playlist')
+        print('update_playlist')
         self.last_update_db_mtime = self.get_db_mtime()
         (self.assets, self.deadline) = generate_asset_list()
         self.nassets = len(self.assets)
         self.counter = 0
         self.index = 0
-        logging.debug('update_playlist done, count %s, counter %s, index %s, deadline %s', self.nassets, self.counter, self.index, self.deadline)
+        print('update_playlist done, count %s, counter %s, index %s, deadline %s', self.nassets, self.counter, self.index, self.deadline)
 
     def get_db_mtime(self):
         return urllib2.urlopen("{0}/json/get_playlist_modtime/{1}".format(BASE_URL, get_active_playlist())).read()
     
 
 def generate_asset_list():
-    logging.info('Generating asset-list...')
+    print('Generating asset-list...')
     
     playlist = json.loads(urllib2.urlopen("{0}/json/client_assetlist/{1}".format(BASE_URL, get_device_id())).read())
     print playlist
     
     deadline = sorted([asset['end_date'] for asset in playlist])[0] if len(playlist) > 0 else None
-    logging.debug('generate_asset_list deadline: %s', deadline)
+    print('generate_asset_list deadline: %s', deadline)
 
 
     if settings['shuffle_playlist']:
@@ -134,10 +134,10 @@ def watchdog():
 
 def load_browser(url=None):
     global browser, current_browser_url
-    logging.info('Loading browser...')
+    print('Loading browser...')
 
     if browser:
-        logging.info('killing previous uzbl %s', browser.pid)
+        print('killing previous uzbl %s', browser.pid)
         browser.process.kill()
 
     if not url is None:
@@ -146,7 +146,7 @@ def load_browser(url=None):
     # --config=-       read commands (and config) from stdin
     # --print-events   print events to stdout
     browser = sh.Command('uzbl-browser')(print_events=True, config='-', uri=current_browser_url, _bg=True)
-    logging.info('Browser loading %s. Running as PID %s.', current_browser_url, browser.pid)
+    print('Browser loading %s. Running as PID %s.', current_browser_url, browser.pid)
 
     uzbl_rc = 'ssl_verify {}\n'.format('1' if settings['verify_ssl'] else '0')
     with open(UZBLRC) as f:  # load uzbl.rc
@@ -166,7 +166,7 @@ def browser_send(command, cb=lambda _: True):
             if cb(browser.next()):
                 break
     else:
-        logging.info('browser found dead, restarting')
+        print('browser found dead, restarting')
         load_browser()
 
 
@@ -180,11 +180,11 @@ def browser_url(url, cb=lambda _: True, force=False):
     print "Current url: {0}".format(url);
 
     if url == current_browser_url and not force:
-        logging.debug('Already showing %s, keeping it.', current_browser_url)
+        print('Already showing %s, keeping it.', current_browser_url)
     else:
         current_browser_url = url
         browser_send('uri ' + current_browser_url, cb=cb)
-        logging.info('current url is %s', current_browser_url)
+        print('current url is %s', current_browser_url)
 
 
 def view_image(uri):
@@ -194,7 +194,7 @@ def view_image(uri):
 
 
 def view_video(uri, duration, live = ''):
-    logging.debug('Displaying video %s for %s ', uri, duration)
+    print('Displaying video %s for %s ', uri, duration)
     
     if arch == 'armv6l':
         player_args = ['omxplayer', uri, live]
@@ -260,22 +260,26 @@ def asset_loop(scheduler):
     print "New Loop"
     asset = scheduler.get_next_asset()
     print "Active Playlist: {0}".format(get_active_playlist())
+
+    print "Asset: {}".format(asset)
     
     if asset is None:
-        logging.info('Playlist is empty. Sleeping for %s seconds', EMPTY_PL_DELAY)
+        print('Playlist is empty. Sleeping for %s seconds', EMPTY_PL_DELAY)
         view_url(SPLASH_PAGE)
         sleep(EMPTY_PL_DELAY)
 
+        
+
     elif path.isfile(asset['uri']) or not url_fails(asset['uri']):
         name, mime, uri = asset['name'], asset['mimetype'], asset['uri']
-        logging.info('Showing asset %s (%s)', name, mime)
-        logging.debug('Asset URI %s', uri)
+        print('Showing asset %s (%s)', name, mime)
+        print('Asset URI %s', uri)
         watchdog()
-
+        
         if 'image' in mime:
             print "VIEWING IMAGE"
             view_image("{0}/{1}".format(ASSET_PATH, uri))
-        elif 'web' in mime:
+        elif 'webpage' in mime:
             print "VIEWING WEB"
             browser_url(uri)
         elif 'video' in mime:
@@ -292,10 +296,10 @@ def asset_loop(scheduler):
 
         if 'image' in mime or 'web' in mime:
             duration = int(asset['duration'])
-            logging.info('Sleeping for %s', duration)
+            print('Sleeping for %s', duration)
             sleep(duration)
     else:
-        logging.info('Asset %s at %s is not available, skipping.', asset['name'], asset['uri'])
+        print('Asset %s at %s is not available, skipping.', asset['name'], asset['uri'])
         sleep(0.5)
 
     
@@ -334,7 +338,7 @@ def main():
     print "Device ID: {0}".format(get_device_id())
 
     scheduler = Scheduler()
-    logging.debug('Entering infinite loop.')
+    print('Entering infinite loop.')
     while True:
         asset_loop(scheduler)
     #thread.start_new_thread( main_loop, (scheduler,) )
