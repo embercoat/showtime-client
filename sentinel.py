@@ -5,13 +5,14 @@ import ConfigParser
 import psutil
 import time
 import sh
+from settings import settings
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
 
         if(self.data == "status"):
-            print "Statusrequest from {}".format(self.client_address[0])
+            logging.info("Statusrequest from {}".format(self.client_address[0]))
             processes = ('xloader', '')
             statuses = {}
             for proc in processes:
@@ -20,19 +21,16 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
             self.request.sendall(json.dumps(statuses))
             
         elif self.data == "killview":
-                sh.killall('omxplayer.bin', _ok_code=[1])
-                sh.killall('mplayer', _ok_code=[1])
-		sh.kill(find_pid('python', 'viewer.py'))
-                self.request.sendall(json.dumps("OK"))
+            sh.killall('omxplayer.bin', _ok_code=[1])
+            sh.killall('mplayer', _ok_code=[1])
+            sh.kill(find_pid('python', 'viewer.py'))
+            self.request.sendall(json.dumps("OK"))
                 
         else:
-            print "{} wrote:".format(self.client_address[0])
-            print self.data
+            logging.debug("{} wrote:".format(self.client_address[0]))
+            logging.debug(str(self.data))
             # just send back the same data, but upper-cased
             self.request.sendall("your string in caps: {}".format(self.data.upper()))
-            
-        print
-        print
 
 
 def find_pid(name, cmdline):
@@ -44,7 +42,7 @@ def find_pid(name, cmdline):
         if name in pinfo['name']:
             for arg in pinfo['cmdline']:
                 if cmdline in arg:
-		    return pinfo['pid']
+                    return pinfo['pid']
 
     return False
 
@@ -60,12 +58,10 @@ if __name__ == "__main__":
     
     config = ConfigParser.RawConfigParser()
     config.read('/etc/showtime/showtime.conf')
-    print("Initializing Sentinel")
-    print("Listening on: {0}:{1}".format(config.get('Sentinel', 'listen'),config.getint('Sentinel', 'port')))
+    logging.info("Initializing Sentinel")
+    logging.info("Listening on: {0}:{1}".format(config.get('Sentinel', 'listen'),config.getint('Sentinel', 'port')))
     processcheck('viewer')
     server = SocketServer.TCPServer((config.get('Sentinel', 'listen'), config.getint('Sentinel', 'port')), MyTCPHandler)
 
-    print("Running Forever")
-    print
-    print
+    logging.debug("Running Forever")
     server.serve_forever()

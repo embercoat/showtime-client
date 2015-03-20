@@ -11,8 +11,8 @@ CONFIG_DIR = '/etc/showtime/'
 CONFIG_FILE = 'showtime.conf'
 
 DEFAULTS = {
-    'main' :{
-	'listen' : '0.0.0.0:80'
+    'sentinel' :{
+        'listen' : '0.0.0.0:80'
     },
     'viewer': {
         'show_splash': True,
@@ -20,30 +20,28 @@ DEFAULTS = {
         'shuffle_playlist': False,
         'resolution': '1920x1080',
         'default_duration': '10',
-        'debug_logging': True,
-        'verify_ssl': True,
+        'loglevel': 20,
+        'base_url' : '',
+        'verify_ssl' : False,
+        'uzbl_configfile': '/etc/showtime/uzbl.rc'
     },
-    'internal':{
-        'configdir' : CONFIG_DIR
-    }
 }
 
 # Initiate logging
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     filename='/tmp/showtime_viewer.log',
-                    format='%(asctime)s %(message)s',
+                    format='%(asctime)s [%(levelname)8s] %(filename)12s:%(lineno)s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S')
 
 # Silence urllib info messages ('Starting new HTTP connection')
 # that are triggered by the remote url availability check in view_web
 requests_log = logging.getLogger("requests")
-requests_log.setLevel(logging.WARNING)
+requests_log.setLevel(logging.DEBUG)
 
-logging.debug('Starting viewer.py')
+logging.debug('Starting settings.py')
 
-
-class ScreenlySettings(IterableUserDict):
-    "Showtimes Settings."
+class ShowtimeSettings(IterableUserDict):
+    "Showtime Settings."
 
     def __init__(self, *args, **kwargs):
         rv = IterableUserDict.__init__(self, *args, **kwargs)
@@ -86,12 +84,6 @@ class ScreenlySettings(IterableUserDict):
         for section, defaults in DEFAULTS.items():
             for field, default in defaults.items():
                 self._get(config, section, field, default)
-        try:
-            self.get_listen_ip()
-            int(self.get_listen_port())
-        except ValueError as e:
-            logging.info("Could not parse setting 'listen': %s. Using default value: '%s'." % (unicode(e), DEFAULTS['main']['listen']))
-            self['listen'] = DEFAULTS['main']['listen']
 
     def save(self):
         # Write new settings to disk.
@@ -116,4 +108,4 @@ class ScreenlySettings(IterableUserDict):
     def get_listen_port(self):
         return self['listen'].split(':')[1]
 
-settings = ScreenlySettings()
+settings = ShowtimeSettings()
