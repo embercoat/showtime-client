@@ -51,7 +51,7 @@ class ScreenlySettings(IterableUserDict):
         self.conf_file = self.get_configfile()
 
         if not path.isfile(self.conf_file):
-            logging.error('Config-file %s missing', self.conf_file)
+            print 'Config-file %s missing' % (self.conf_file)
             exit(1)
         else:
             self.load()

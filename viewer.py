@@ -28,7 +28,7 @@ LOAD_SCREEN = '/screenly/loading.jpg'  # relative to $HOME
 UZBLRC = '/etc/showtime/uzbl.rc'  # absolute path
 INTRO = '/screenly/intro-template.html'
 BASE_URL = 'http://vwhisky.internal.stuk.nu'
-BASE_PATH = 'file:///showtime'
+BASE_PATH = '/showtime'
 ASSET_PATH = '{0}/assets'.format(BASE_PATH)
 BLACK_PAGE = '{0}/static/black_page.html'.format(BASE_PATH)
 SPLASH_PAGE = '{0}/pages/splash'.format(BASE_URL)
@@ -197,8 +197,10 @@ def view_video(uri, duration, live = ''):
     print('Displaying video %s for %s ', uri, duration)
     
     if arch == 'armv6l':
-        player_args = ['omxplayer', uri, live]
-        player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}
+        player_args = ['omxplayer', uri, live, "-o", "hdmi"]
+	"""        player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}"""
+        player_kwargs = {'_bg': True, '_ok_code': [0, 124]}
+
         player_kwargs['_ok_code'] = [0, 124]
     else:
         player_args = ['mplayer', uri, '-nosound']
@@ -278,7 +280,7 @@ def asset_loop(scheduler):
         
         if 'image' in mime:
             print "VIEWING IMAGE"
-            view_image("{0}/{1}".format(ASSET_PATH, uri))
+            view_image("file://{0}/{1}".format(ASSET_PATH, uri))
         elif 'webpage' in mime:
             print "VIEWING WEB"
             browser_url(uri)
