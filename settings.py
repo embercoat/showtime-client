@@ -11,15 +11,9 @@ CONFIG_DIR = '/etc/showtime/'
 CONFIG_FILE = 'showtime.conf'
 
 DEFAULTS = {
-    'sentinel' :{
-        'listen' : '0.0.0.0:80'
-    },
     'viewer': {
         'show_splash': True,
         'audio_output': 'hdmi',
-        'shuffle_playlist': False,
-        'resolution': '1920x1080',
-        'default_duration': '10',
         'loglevel': 20,
         'base_url' : '',
         'verify_ssl' : False,

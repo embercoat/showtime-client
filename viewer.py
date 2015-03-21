@@ -9,7 +9,8 @@ from random import shuffle
 from requests import get as req_get
 from time import sleep, time
 from json import load as json_load
-from signal import signal, SIGUSR1, SIGUSR2
+import sys
+import signal
 import logging
 import sh
 import json
@@ -22,17 +23,10 @@ from utils import url_fails
 SPLASH_DELAY = 0  # secs
 EMPTY_PL_DELAY = 5  # secs
 
-print(settings)
-
-WATCHDOG_PATH = '/tmp/screenly.watchdog'
-SCREENLY_HTML = '/tmp/screenly_html/'
-LOAD_SCREEN = '/screenly/loading.jpg'  # relative to $HOME
-# UZBLRC = '/etc/showtime/uzbl.rc'  # absolute path
+WATCHDOG_PATH = settings.get('watchdog')
 UZBLRC = settings.get('uzbl_configfile')  # absolute path
-INTRO = '/screenly/intro-template.html'
-# BASE_URL = 'http://vwhisky.internal.stuk.nu' 
 BASE_URL = settings.get('base_url')
-BASE_PATH = '/showtime'
+BASE_PATH = settings.get('base_path')
 ASSET_PATH = '{0}/assets'.format(BASE_PATH)
 BLACK_PAGE = '{0}/static/black_page.html'.format(BASE_PATH)
 SPLASH_PAGE = '{0}/pages/splash'.format(BASE_URL)
@@ -41,21 +35,6 @@ current_browser_url = None
 browser = None
 
 VIDEO_TIMEOUT=20  # secs
-
-def sigusr1(signum, frame):
-    """
-    The signal interrupts sleep() calls, so the currently playing web or image asset is skipped.
-    omxplayer is killed to skip any currently playing video assets.
-    """
-    logging.info('USR1 received, skipping.')
-    sh.killall('omxplayer.bin', _ok_code=[1])
-
-
-def sigusr2(signum, frame):
-    """Reload settings"""
-    logging.info("USR2 received, reloading settings.")
-    load_settings()
-
 
 class Scheduler(object):
     def __init__(self, *args, **kwargs):
@@ -199,7 +178,7 @@ def view_video(uri, duration, live = ''):
     
     if arch == 'armv6l':
         player_args = ['omxplayer', uri, live, "-o", "hdmi"]
-	"""        player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}"""
+    """        player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}"""
         player_kwargs = {'_bg': True, '_ok_code': [0, 124]}
 
         player_kwargs['_ok_code'] = [0, 124]
@@ -282,24 +261,48 @@ def asset_loop(scheduler):
         sleep(0.5)
 
     
-
+def main_loop(scheduler):
+    while True:
+        asset_loop(scheduler)
+    
+    
 def setup():
     global HOME, arch, DB, device_id
     HOME = getenv('HOME', '/home/pi')
     arch = machine()
 
-    signal(SIGUSR1, sigusr1)
-    signal(SIGUSR2, sigusr2)
+    """ Setup some signalhandlers """
+    signal.signal(signal.SIGUSR1, sigusr1)
+    signal.signal(signal.SIGUSR2, sigusr2)
+    signal.signal(signal.SIGINT, sigint)
+    signal.signal(signal.SIGTERM, sigterm)
 
     load_settings()
     
     device_id = get_device_id()
 
-def main_loop(scheduler):
-    while True:
-        asset_loop(scheduler)
-    
+def sigusr1(signum, frame):
+    """
+    The signal interrupts sleep() calls, so the currently playing web or image asset is skipped.
+    omxplayer is killed to skip any currently playing video assets.
+    """
+    logging.info('USR1 received, skipping.')
+    sh.killall('omxplayer.bin', _ok_code=[1])
 
+
+def sigusr2(signum, frame):
+    """Reload settings"""
+    logging.info("USR2 received, reloading settings.")
+    load_settings()
+    
+def sigint(signum, frame):    
+    logging.info("User interrupt Exiting gracefully.")
+    sys.exit(0)
+    
+def sigterm(signum, frame):    
+    logging.info("Termination. Exiting gracefully.")
+    sys.exit(0)
+    
 def main():
     setup()
     

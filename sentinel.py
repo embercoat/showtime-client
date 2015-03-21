@@ -5,7 +5,10 @@ import ConfigParser
 import psutil
 import time
 import sh
-from settings import settings
+import logging
+import signal
+
+
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -54,14 +57,29 @@ def processcheck(seekitem):
     else:
         return False
 
+def sigint(signum, frame):    
+    logging.info("User interrupt Exiting gracefully.")
+    sys.exit(0)
+    
+def sigterm(signum, frame):    
+    logging.info("Termination. Exiting gracefully.")
+    sys.exit(0)
+
 if __name__ == "__main__":
+    
+    signal.signal(signal.SIGINT, sigint)
+    signal.signal(signal.SIGTERM, sigterm)
     
     config = ConfigParser.RawConfigParser()
     config.read('/etc/showtime/showtime.conf')
+    logging.basicConfig(level=logging.DEBUG,
+                    filename=config.get('sentinel', 'logfile'),
+                    format='%(asctime)s [%(levelname)8s] %(filename)12s:%(lineno)s %(message)s',
+                    datefmt='%a, %d %b %Y %H:%M:%S')
     logging.info("Initializing Sentinel")
-    logging.info("Listening on: {0}:{1}".format(config.get('Sentinel', 'listen'),config.getint('Sentinel', 'port')))
+    logging.info("Listening on: {0}:{1}".format(config.get('sentinel', 'listen'),config.getint('sentinel', 'port')))
     processcheck('viewer')
-    server = SocketServer.TCPServer((config.get('Sentinel', 'listen'), config.getint('Sentinel', 'port')), MyTCPHandler)
+    server = SocketServer.TCPServer((config.get('sentinel', 'listen'), config.getint('sentinel', 'port')), MyTCPHandler)
 
     logging.debug("Running Forever")
     server.serve_forever()
