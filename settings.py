@@ -17,7 +17,9 @@ DEFAULTS = {
         'loglevel': 20,
         'base_url' : '',
         'verify_ssl' : False,
-        'uzbl_configfile': '/etc/showtime/uzbl.rc'
+        'uzbl_configfile': '/etc/showtime/uzbl.rc',
+        'debug' : False,
+        'base_path' : ''
     },
 }
 

@@ -31,6 +31,8 @@ ASSET_PATH = '{0}/assets'.format(BASE_PATH)
 BLACK_PAGE = '{0}/static/black_page.html'.format(BASE_PATH)
 SPLASH_PAGE = '{0}/pages/splash'.format(BASE_URL)
 
+print settings
+
 current_browser_url = None
 browser = None
 
