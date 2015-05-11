@@ -50,8 +50,6 @@ class Scheduler(object):
         idx = self.index
         self.index = (self.index + 1) % self.nassets
         logging.debug('get_next_asset counter %s returning asset %s of %s', self.counter, idx + 1, self.nassets)
-        if settings['shuffle_playlist'] and self.index == 0:
-            self.counter += 1
         return self.assets[idx]
 
     def refresh_playlist(self):
@@ -103,10 +101,11 @@ def get_active_playlist():
 
 def watchdog():
     """Notify the watchdog file to be used with the watchdog-device."""
-    if not path.isfile(WATCHDOG_PATH):
+    """if not path.isfile(WATCHDOG_PATH):
         open(WATCHDOG_PATH, 'w').close()
     else:
-        utime(WATCHDOG_PATH, None)
+        utime(WATCHDOG_PATH, None)"""
+    pass
 
 
 def load_browser(url=None):
@@ -178,7 +177,7 @@ def view_video(uri, duration, live = ''):
     
     if arch == 'armv6l':
         player_args = ['omxplayer', uri, live, "-o", "hdmi"]
-    """        player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}"""
+	"""        player_kwargs = {'o': settings['audio_output'], '_bg': True, '_ok_code': [0, 124]}"""
         player_kwargs = {'_bg': True, '_ok_code': [0, 124]}
 
         player_kwargs['_ok_code'] = [0, 124]
